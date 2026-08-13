@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DasVisable - DHF / Thermal 模型查看器</title>
+  <style>
+    html,
+    body,
+    #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      background: #10131a;
+    }
+
+    #toolbar {
+      position: absolute;
+      z-index: 10;
+      top: 16px;
+      left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: #e8f0ff;
+      background: rgba(15, 20, 32, 0.82);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+    }
+
+    #toolbar h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .segmented {
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .segmented label {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .segmented input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .segmented span {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 6px;
+      color: #aab7cf;
+      font-size: 14px;
+      transition: all 0.18s ease;
+    }
+
+    .segmented input:checked + span {
+      color: #ffffff;
+      background: #2f80ed;
+      box-shadow: 0 2px 10px rgba(47, 128, 237, 0.45);
+    }
+
+    .detection-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      color: #cdd7e8;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .detection-toggle input {
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      accent-color: #2f80ed;
+      cursor: pointer;
+    }
+
+    #status {
+      min-width: 120px;
+      padding: 6px 10px;
+      border-left: 1px solid rgba(255, 255, 255, 0.16);
+      font-size: 13px;
+      color: #cdd7e8;
+      white-space: nowrap;
+    }
+
+    #status.error {
+      color: #ffb4b4;
+    }
+
+    #hint {
+      position: absolute;
+      z-index: 5;
+      left: 16px;
+      bottom: 14px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      color: #b9c4d8;
+      background: rgba(15, 20, 32, 0.62);
+      font-size: 12px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+
+  <div id="toolbar">
+    <h1>DasVisable</h1>
+    <div class="segmented" role="radiogroup" aria-label="模型选择">
+      <label>
+        <input type="radio" name="model" value="DHF" checked />
+        <span>DHF</span>
+      </label>
+      <label>
+        <input type="radio" name="model" value="thermal" />
+        <span>Thermal</span>
+      </label>
+    </div>
+    <label class="detection-toggle">
+      <input type="checkbox" id="detectionToggle" checked />
+      <span>检测框</span>
+    </label>
+    <div id="status">正在初始化 Cesium...</div>
+  </div>
+
+  <div id="hint">鼠标左键旋转 · 滚轮缩放 · 右键平移</div>
+
+  <script>
+    window.CESIUM_BASE_URL = "cesium/Build/Cesium/";
+  </script>
+  <link rel="stylesheet" href="cesium/Build/Cesium/Widgets/widgets.css" />
+  <script src="cesium/Build/Cesium/Cesium.js"></script>
+  <script>
+    (async function main() {
+      const statusEl = document.getElementById("status");
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.classList.toggle("error", isError);
+      }
+
+      if (!window.Cesium) {
+        setStatus("Cesium 加载失败，请检查网络连接", true);
+        return;
+      }
+
+      Cesium.buildModuleUrl.setBaseUrl(window.CESIUM_BASE_URL);
+
+      const viewer = new Cesium.Viewer("cesiumContainer", {
+        animation: false,
+        timeline: false,
+        baseLayerPicker: false,
+        geocoder: false,
+        homeButton: false,
+        sceneModePicker: false,
+        navigationHelpButton: false,
+        fullscreenButton: false,
+        infoBox: false,
+        selectionIndicator: false,
+        baseLayer: false,
+        terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+        requestRenderMode: true,
+        maximumRenderTimeChange: Infinity
+      });
+
+      viewer.scene.globe.depthTestAgainstTerrain = false;
+      viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1;
+      viewer.scene.screenSpaceCameraController.maximumZoomDistance = 100000000;
+
+      const detectionToggle = document.getElementById("detectionToggle");
+      const detectionLabel = detectionToggle.closest("label").querySelector("span");
+      const detectionDataSources = [];
+      let detectionVisible = detectionToggle.checked;
+
+      const kmlDefinitions = [
+        {
+          label: "crack_dam crest",
+          url: "812kml/classified/crack_dam crest.kml"
+        },
+        {
+          label: "crack_spillway",
+          url: "812kml/classified/crack_spillway.kml"
+        },
+        {
+          label: "precipitate",
+          url: "812kml/classified/precipitate.kml"
+        }
+      ];
+
+      function addAbsoluteAltitudeMode(xmlDoc) {
+        const kmlNamespace = "http://www.opengis.net/kml/2.2";
+        const polygons = xmlDoc.getElementsByTagName("Polygon");
+
+        for (let i = 0; i < polygons.length; i += 1) {
+          const polygon = polygons[i];
+          const existing = polygon.getElementsByTagName("altitudeMode")[0];
+          if (existing) {
+            continue;
+          }
+
+          const altitudeMode = xmlDoc.createElementNS(kmlNamespace, "altitudeMode");
+          altitudeMode.textContent = "absolute";
+          polygon.insertBefore(altitudeMode, polygon.firstChild);
+        }
+      }
+
+      async function loadKmlDataSource(definition) {
+        const response = await fetch(encodeURI(definition.url));
+        if (!response.ok) {
+          throw new Error(`${definition.label} 请求失败：HTTP ${response.status}`);
+        }
+
+        const xmlText = await response.text();
+        const xmlDoc = new DOMParser().parseFromString(xmlText, "application/xml");
+        const parserErrors = xmlDoc.getElementsByTagName("parsererror");
+        if (parserErrors.length > 0) {
+          throw new Error(`${definition.label} KML 解析失败`);
+        }
+
+        // 这些 KML 没有显式 altitudeMode，Cesium 会默认贴地，
+        // 因此动态补上 absolute，让检测框保留原始高程。
+        addAbsoluteAltitudeMode(xmlDoc);
+
+        const dataSource = await Cesium.KmlDataSource.load(xmlDoc, {
+          camera: viewer.scene.camera,
+          canvas: viewer.scene.canvas,
+          clampToGround: false
+        });
+
+        dataSource.show = detectionVisible;
+        viewer.dataSources.add(dataSource);
+        detectionDataSources.push(dataSource);
+        return dataSource;
+      }
+
+      async function loadDetectionBoxes() {
+        const results = await Promise.all(
+          kmlDefinitions.map(function (definition) {
+            return loadKmlDataSource(definition);
+          })
+        );
+
+        detectionLabel.textContent = detectionVisible
+          ? `检测框 (${results.length})`
+          : "检测框";
+        console.info(`已加载 ${results.length} 个检测框 KML 数据源`);
+      }
+
+      detectionToggle.addEventListener("change", function () {
+        detectionVisible = detectionToggle.checked;
+        detectionDataSources.forEach(function (dataSource) {
+          dataSource.show = detectionVisible;
+        });
+        detectionLabel.textContent = detectionVisible
+          ? `检测框 (${detectionDataSources.length})`
+          : "检测框";
+      });
+
+      loadDetectionBoxes().catch(function (error) {
+        console.error("检测框 KML 加载失败：", error);
+        detectionLabel.textContent = "检测框加载失败";
+      });
+
+      const modelDefinitions = [
+        {
+          key: "DHF",
+          label: "DHF",
+          url: "DHF/tileset.json"
+        },
+        {
+          key: "thermal",
+          label: "Thermal",
+          url: "thermal/tileset.json"
+        }
+      ];
+
+      const tilesets = {};
+      let currentModel = "DHF";
+      let loadingCount = 0;
+
+      async function loadTileset(definition) {
+        loadingCount += 1;
+        setStatus(`正在加载 ${definition.label} 模型...`);
+
+        try {
+          const tileset = await Cesium.Cesium3DTileset.fromUrl(definition.url, {
+            maximumScreenSpaceError: 16,
+            cacheBytes: 1024 * 1024 * 1024
+          });
+
+          tileset.show = definition.key === currentModel;
+          viewer.scene.primitives.add(tileset);
+          tilesets[definition.key] = tileset;
+
+          if (definition.key === currentModel) {
+            await viewer.zoomTo(tileset);
+          }
+
+          loadingCount -= 1;
+          if (loadingCount === 0) {
+            setStatus(`${definition.label} 加载完成，可切换模型`);
+          }
+          return tileset;
+        } catch (error) {
+          loadingCount -= 1;
+          console.error(`加载 ${definition.label} 失败:`, error);
+          setStatus(`${definition.label} 加载失败，请检查服务是否已启动`, true);
+          return null;
+        }
+      }
+
+      function selectModel(key) {
+        if (!tilesets[key]) {
+          return;
+        }
+
+        currentModel = key;
+        for (const [name, tileset] of Object.entries(tilesets)) {
+          tileset.show = name === key;
+        }
+
+        const selected = tilesets[key];
+        viewer.zoomTo(selected).catch(function (error) {
+          console.warn("切换视角失败：", error);
+        });
+        setStatus(`当前显示：${key}`);
+      }
+
+      document.querySelectorAll('input[name="model"]').forEach(function (input) {
+        input.addEventListener("change", function () {
+          currentModel = input.value;
+          if (tilesets[currentModel]) {
+            selectModel(currentModel);
+          } else {
+            setStatus(`正在加载 ${currentModel} 模型，就绪后自动切换`);
+          }
+        });
+      });
+
+      setStatus("正在加载 DHF 与 Thermal 模型...");
+
+      const loadedTilesets = await Promise.all(
+        modelDefinitions.map(function (definition) {
+          return loadTileset(definition);
+        })
+      );
+
+      if (loadedTilesets.every(Boolean)) {
+        setStatus("两个模型均已就绪，可切换查看");
+      } else {
+        setStatus("部分模型加载失败，请检查控制台日志", true);
+      }
+    })().catch(function (error) {
+      console.error(error);
+      const statusEl = document.getElementById("status");
+      if (statusEl) {
+        statusEl.textContent = "初始化失败：请通过本地 HTTP 服务打开页面";
+        statusEl.classList.add("error");
+      }
+    });
+  </script>
+</body>
+</html>
