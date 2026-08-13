@@ -97,6 +97,25 @@
       cursor: pointer;
     }
 
+    .detection-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      max-width: 480px;
+    }
+
+    .model-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .detection-master {
+      border-color: rgba(47, 128, 237, 0.5);
+      background: rgba(47, 128, 237, 0.1);
+    }
+
     #status {
       min-width: 120px;
       padding: 6px 10px;
@@ -129,20 +148,34 @@
 
   <div id="toolbar">
     <h1>DasVisable</h1>
-    <div class="segmented" role="radiogroup" aria-label="模型选择">
-      <label>
-        <input type="radio" name="model" value="DHF" checked />
+    <div class="model-group" role="group" aria-label="模型选择">
+      <label class="detection-toggle">
+        <input type="checkbox" class="model-item" data-key="DHF" checked />
         <span>DHF</span>
       </label>
-      <label>
-        <input type="radio" name="model" value="thermal" />
+      <label class="detection-toggle">
+        <input type="checkbox" class="model-item" data-key="thermal" checked />
         <span>Thermal</span>
       </label>
     </div>
-    <label class="detection-toggle">
-      <input type="checkbox" id="detectionToggle" checked />
-      <span>检测框</span>
-    </label>
+    <div class="detection-group" role="group" aria-label="检测框">
+      <label class="detection-toggle detection-master">
+        <input type="checkbox" id="detectionToggleAll" checked />
+        <span>检测框</span>
+      </label>
+      <label class="detection-toggle">
+        <input type="checkbox" class="detection-item" data-key="dam_crest" checked />
+        <span>坝顶裂缝</span>
+      </label>
+      <label class="detection-toggle">
+        <input type="checkbox" class="detection-item" data-key="spillway" checked />
+        <span>溢洪道裂缝</span>
+      </label>
+      <label class="detection-toggle">
+        <input type="checkbox" class="detection-item" data-key="precipitate" checked />
+        <span>析出物</span>
+      </label>
+    </div>
     <div id="status">正在初始化 Cesium...</div>
   </div>
 
@@ -190,25 +223,57 @@
       viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1;
       viewer.scene.screenSpaceCameraController.maximumZoomDistance = 100000000;
 
-      const detectionToggle = document.getElementById("detectionToggle");
-      const detectionLabel = detectionToggle.closest("label").querySelector("span");
-      const detectionDataSources = [];
-      let detectionVisible = detectionToggle.checked;
-
+      const detectionToggleAll = document.getElementById("detectionToggleAll");
+      const detectionItemInputs = Array.from(
+        document.querySelectorAll(".detection-item")
+      );
+      const detectionDataSources = new Map();
       const kmlDefinitions = [
         {
-          label: "crack_dam crest",
+          key: "dam_crest",
+          label: "坝顶裂缝",
           url: "812kml/classified/crack_dam crest.kml"
         },
         {
-          label: "crack_spillway",
+          key: "spillway",
+          label: "溢洪道裂缝",
           url: "812kml/classified/crack_spillway.kml"
         },
         {
-          label: "precipitate",
+          key: "precipitate",
+          label: "析出物",
           url: "812kml/classified/precipitate.kml"
         }
       ];
+
+      const detectionVisibility = {};
+      detectionItemInputs.forEach(function (input) {
+        detectionVisibility[input.dataset.key] = input.checked;
+      });
+
+      function updateDetectionToggleAll() {
+        const allVisible = kmlDefinitions.every(function (definition) {
+          return detectionVisibility[definition.key];
+        });
+        detectionToggleAll.checked = allVisible;
+      }
+
+      function applyDetectionVisibility(key) {
+        const dataSource = detectionDataSources.get(key);
+        const input = detectionItemInputs.find(function (item) {
+          return item.dataset.key === key;
+        });
+
+        const visible = detectionVisibility[key];
+        if (input) {
+          input.checked = visible;
+        }
+        if (dataSource) {
+          dataSource.show = visible;
+        }
+        viewer.scene.requestRender();
+        updateDetectionToggleAll();
+      }
 
       function addAbsoluteAltitudeMode(xmlDoc) {
         const kmlNamespace = "http://www.opengis.net/kml/2.2";
@@ -250,9 +315,9 @@
           clampToGround: false
         });
 
-        dataSource.show = detectionVisible;
+        dataSource.show = detectionVisibility[definition.key];
         viewer.dataSources.add(dataSource);
-        detectionDataSources.push(dataSource);
+        detectionDataSources.set(definition.key, dataSource);
         return dataSource;
       }
 
@@ -263,25 +328,26 @@
           })
         );
 
-        detectionLabel.textContent = detectionVisible
-          ? `检测框 (${results.length})`
-          : "检测框";
         console.info(`已加载 ${results.length} 个检测框 KML 数据源`);
       }
 
-      detectionToggle.addEventListener("change", function () {
-        detectionVisible = detectionToggle.checked;
-        detectionDataSources.forEach(function (dataSource) {
-          dataSource.show = detectionVisible;
+      detectionItemInputs.forEach(function (input) {
+        input.addEventListener("change", function () {
+          detectionVisibility[input.dataset.key] = input.checked;
+          applyDetectionVisibility(input.dataset.key);
         });
-        detectionLabel.textContent = detectionVisible
-          ? `检测框 (${detectionDataSources.length})`
-          : "检测框";
+      });
+
+      detectionToggleAll.addEventListener("change", function () {
+        const visible = detectionToggleAll.checked;
+        kmlDefinitions.forEach(function (definition) {
+          detectionVisibility[definition.key] = visible;
+          applyDetectionVisibility(definition.key);
+        });
       });
 
       loadDetectionBoxes().catch(function (error) {
         console.error("检测框 KML 加载失败：", error);
-        detectionLabel.textContent = "检测框加载失败";
       });
 
       const modelDefinitions = [
@@ -297,9 +363,91 @@
         }
       ];
 
+      const modelItemInputs = Array.from(
+        document.querySelectorAll(".model-item")
+      );
       const tilesets = {};
-      let currentModel = "DHF";
+      const modelVisibility = {};
       let loadingCount = 0;
+
+      modelItemInputs.forEach(function (input) {
+        modelVisibility[input.dataset.key] = input.checked;
+      });
+
+      function combineBoundingSpheres(spheres) {
+        const points = [];
+        const offsets = [
+          [-1, -1, -1],
+          [-1, -1, 1],
+          [-1, 1, -1],
+          [-1, 1, 1],
+          [1, -1, -1],
+          [1, -1, 1],
+          [1, 1, -1],
+          [1, 1, 1]
+        ];
+
+        spheres.forEach(function (sphere) {
+          const center = sphere.center;
+          const radius = sphere.radius;
+          offsets.forEach(function (offset) {
+            points.push(
+              new Cesium.Cartesian3(
+                center.x + offset[0] * radius,
+                center.y + offset[1] * radius,
+                center.z + offset[2] * radius
+              )
+            );
+          });
+        });
+
+        return Cesium.BoundingSphere.fromPoints(points);
+      }
+
+      function zoomToVisibleModels() {
+        const visibleTilesets = modelDefinitions
+          .filter(function (definition) {
+            return modelVisibility[definition.key] && tilesets[definition.key];
+          })
+          .map(function (definition) {
+            return tilesets[definition.key];
+          });
+
+        if (visibleTilesets.length === 0) {
+          setStatus("当前未选择模型");
+          return;
+        }
+
+        if (visibleTilesets.length === 1) {
+          viewer.zoomTo(visibleTilesets[0]).catch(function (error) {
+            console.warn("切换视角失败：", error);
+          });
+        } else {
+          const combinedSphere = combineBoundingSpheres(
+            visibleTilesets.map(function (tileset) {
+              return tileset.boundingSphere;
+            })
+          );
+          viewer.camera.flyToBoundingSphere(combinedSphere, {
+            duration: 0.5,
+            offset: new Cesium.HeadingPitchRange(
+              0,
+              Cesium.Math.toRadians(-35),
+              Math.max(combinedSphere.radius * 1.2, 50)
+            )
+          });
+        }
+        viewer.scene.requestRender();
+
+        const visibleLabels = modelDefinitions
+          .filter(function (definition) {
+            return modelVisibility[definition.key];
+          })
+          .map(function (definition) {
+            return definition.label;
+          });
+        setStatus(`当前显示：${visibleLabels.join(" + ")}`);
+      }
 
       async function loadTileset(definition) {
         loadingCount += 1;
@@ -311,17 +459,13 @@
             cacheBytes: 1024 * 1024 * 1024
           });
 
-          tileset.show = definition.key === currentModel;
+          tileset.show = modelVisibility[definition.key];
           viewer.scene.primitives.add(tileset);
           tilesets[definition.key] = tileset;
 
-          if (definition.key === currentModel) {
-            await viewer.zoomTo(tileset);
-          }
-
           loadingCount -= 1;
           if (loadingCount === 0) {
-            setStatus(`${definition.label} 加载完成，可切换模型`);
+            zoomToVisibleModels();
           }
           return tileset;
         } catch (error) {
@@ -332,31 +476,18 @@
         }
       }
 
-      function selectModel(key) {
-        if (!tilesets[key]) {
-          return;
+      function applyModelVisibility(key) {
+        const tileset = tilesets[key];
+        if (tileset) {
+          tileset.show = modelVisibility[key];
         }
-
-        currentModel = key;
-        for (const [name, tileset] of Object.entries(tilesets)) {
-          tileset.show = name === key;
-        }
-
-        const selected = tilesets[key];
-        viewer.zoomTo(selected).catch(function (error) {
-          console.warn("切换视角失败：", error);
-        });
-        setStatus(`当前显示：${key}`);
+        zoomToVisibleModels();
       }
 
-      document.querySelectorAll('input[name="model"]').forEach(function (input) {
+      modelItemInputs.forEach(function (input) {
         input.addEventListener("change", function () {
-          currentModel = input.value;
-          if (tilesets[currentModel]) {
-            selectModel(currentModel);
-          } else {
-            setStatus(`正在加载 ${currentModel} 模型，就绪后自动切换`);
-          }
+          modelVisibility[input.dataset.key] = input.checked;
+          applyModelVisibility(input.dataset.key);
         });
       });
 
@@ -368,8 +499,8 @@
         })
       );
 
-      if (loadedTilesets.every(Boolean)) {
-        setStatus("两个模型均已就绪，可切换查看");
+      if (loadedTilesets.some(Boolean)) {
+        zoomToVisibleModels();
       } else {
         setStatus("部分模型加载失败，请检查控制台日志", true);
       }
