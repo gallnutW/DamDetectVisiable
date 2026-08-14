@@ -1,6 +1,6 @@
 # DasVisable - Cesium 模型查看器
 
-这个页面用 Cesium 可视化 `DHF` 和 `thermal` 两个 3D Tiles 模型。两个模型可以单独显示，也可以同时勾选显示。
+这个页面用 Cesium 可视化 `DHF`、`thermal` 和 `LiDAR` 三个 3D Tiles 模型。三个模型可以单独显示，也可以同时勾选显示。
 同时加载 `812kml/classified/` 下的检测框 KML 文件，并把三类检测框拆成独立开关：
 
 - 坝顶裂缝
@@ -30,6 +30,7 @@ python server.py --host 0.0.0.0 --port 8080
 
 - `DHF/tileset.json`
 - `thermal/tileset.json`
+- `LiDAR/tileset.json`
 - `812kml/classified/*.kml`
 
 Cesium 库已本地化在 `cesium/Build/Cesium/`，页面不依赖外网。
