@@ -1,20 +1,20 @@
 # DasVisable - Cesium 模型查看器
 
-这个页面用 Cesium 可视化 `DHF`、`thermal` 和 `LiDAR` 三个 3D Tiles 模型。三个模型可以单独显示，也可以同时勾选显示。
-同时加载 `812kml/classified/` 下的检测框 KML 文件，并把三类检测框拆成独立开关：
+这个项目用 Cesium 可视化 `DHF`、`thermal` 和 `LiDAR` 三个 3D Tiles 模型，并加载 KML 检测框。
 
-- 坝顶裂缝
-- 溢洪道裂缝
-- 析出物
+## 目录结构
 
-每类可以单独显示或隐藏，也可以勾选多类同时显示；“检测框”主开关可以统一显示或隐藏全部检测框。
+- `web/`：前端页面、样式、脚本，以及本地化的 Cesium 库
+- `server/`：本地 HTTP 静态服务
+- `data/`：3D Tiles 与 KML 数据集
+- `run.py`：启动入口
 
 ## 启动
 
 在本目录运行：
 
 ```powershell
-python server.py
+python run.py
 ```
 
 然后打开 <http://127.0.0.1:8000>。
@@ -22,15 +22,21 @@ python server.py
 也可以指定端口或允许局域网访问：
 
 ```powershell
-python server.py --port 8080
-python server.py --host 0.0.0.0 --port 8080
+python run.py --port 8080
+python run.py --host 0.0.0.0 --port 8080
 ```
+
+## 功能
+
+- 三个模型可以单独显示，也可以同时勾选显示
+- 三类检测框（坝顶裂缝、溢洪道裂缝、析出物）可以独立开关
+- “检测框”主开关可以统一显示或隐藏全部检测框
 
 ## 数据说明
 
-- `DHF/tileset.json`
-- `thermal/tileset.json`
-- `LiDAR/tileset.json`
-- `812kml/classified/*.kml`
+- `data/DHF/tileset.json`
+- `data/thermal/tileset.json`
+- `data/LiDAR/tileset.json`
+- `data/kml/classified/*.kml`
 
-Cesium 库已本地化在 `cesium/Build/Cesium/`，页面不依赖外网。
+Cesium 库已本地化在 `web/vendor/cesium/`，页面不依赖外网。

@@ -1,0 +1,102 @@
+html,
+body,
+#cesiumContainer {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  background: #10131a;
+}
+
+#toolbar {
+  position: absolute;
+  z-index: 10;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #e8f0ff;
+  background: rgba(15, 20, 32, 0.82);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+#toolbar h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.detection-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #cdd7e8;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.detection-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #2f80ed;
+  cursor: pointer;
+}
+
+.detection-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-width: 480px;
+}
+
+.model-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detection-master {
+  border-color: rgba(47, 128, 237, 0.5);
+  background: rgba(47, 128, 237, 0.1);
+}
+
+#status {
+  min-width: 120px;
+  padding: 6px 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 13px;
+  color: #cdd7e8;
+  white-space: nowrap;
+}
+
+#status.error {
+  color: #ffb4b4;
+}
+
+#hint {
+  position: absolute;
+  z-index: 5;
+  left: 16px;
+  bottom: 14px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #b9c4d8;
+  background: rgba(15, 20, 32, 0.62);
+  font-size: 12px;
+  pointer-events: none;
+}
