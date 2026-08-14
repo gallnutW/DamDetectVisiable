@@ -4,10 +4,36 @@
 
 ## 目录结构
 
-- `web/`：前端页面、样式、脚本，以及本地化的 Cesium 库
-- `server/`：本地 HTTP 静态服务
-- `data/`：3D Tiles 与 KML 数据集
-- `run.py`：启动入口
+```text
+DasVisable/
+├─ run.py                   # 启动入口，调用 server.serve.main()
+├─ README.md
+├─ .gitignore
+├─ server/
+│  ├─ __init__.py
+│  └─ serve.py              # HTTP 静态服务，服务 web/ 并把 /data 映射到 data/
+├─ web/
+│  ├─ index.html            # 页面结构，外链 CSS 与 JS
+│  ├─ css/
+│  │  └─ main.css           # 页面样式
+│  ├─ js/
+│  │  ├─ app.js             # UI 生成、事件绑定与启动编排
+│  │  ├─ config.js          # 图层与数据源配置（新增图层只改这里）
+│  │  ├─ viewer.js          # Cesium 初始化与相机工具
+│  │  ├─ models.js          # 3D Tiles 加载与显隐
+│  │  └─ detections.js      # KML 检测框加载与显隐
+│  └─ vendor/
+│     └─ cesium/            # 本地化 Cesium 库
+└─ data/
+   ├─ DHF/                  # DHF 3D Tiles
+   ├─ thermal/              # Thermal 3D Tiles
+   ├─ LiDAR/                # LiDAR 点云 3D Tiles
+   └─ kml/
+      ├─ classified/        # 坝顶裂缝、溢洪道裂缝、析出物检测框
+      └─ backup/            # KML 备份
+```
+
+`server/serve.py` 只把 `web/` 作为静态根目录暴露，并将 `/data/*` 请求映射到项目根下的 `data/` 目录；浏览器端通过 `config.js` 中的相对 URL 加载模型和检测框。
 
 ## 启动
 
