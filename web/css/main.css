@@ -1,6 +1,9 @@
+:root {
+  --sidebar-width: 280px;
+}
+
 html,
-body,
-#cesiumContainer {
+body {
   width: 100%;
   height: 100%;
   margin: 0;
@@ -8,44 +11,70 @@ body,
   overflow: hidden;
   font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
   background: #10131a;
-}
-
-#toolbar {
-  position: absolute;
-  z-index: 10;
-  top: 16px;
-  left: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 14px;
-  border-radius: 10px;
   color: #e8f0ff;
-  background: rgba(15, 20, 32, 0.82);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
 }
 
-#toolbar h1 {
-  margin: 0;
-  font-size: 16px;
+body {
+  display: flex;
+}
+
+#sidebar {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width);
+  height: 100%;
+  padding: 20px 16px;
+  overflow-y: auto;
+  background: #0f1420;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#brand {
+  margin: 0 0 24px;
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  white-space: nowrap;
+}
+
+.panel {
+  margin-bottom: 24px;
+}
+
+.panel-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: #aab7cf;
+}
+
+.model-group,
+.detection-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
 }
 
 .detection-toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
   color: #cdd7e8;
   font-size: 14px;
   cursor: pointer;
   user-select: none;
-  white-space: nowrap;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.detection-toggle:hover {
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .detection-toggle input {
@@ -56,36 +85,37 @@ body,
   cursor: pointer;
 }
 
-.detection-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  max-width: 480px;
-}
-
-.model-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .detection-master {
   border-color: rgba(47, 128, 237, 0.5);
   background: rgba(47, 128, 237, 0.1);
 }
 
 #status {
-  min-width: 120px;
-  padding: 6px 10px;
-  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 13px;
+  line-height: 1.5;
   color: #cdd7e8;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 #status.error {
   color: #ffb4b4;
+}
+
+#viewer-panel {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+}
+
+#cesiumContainer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 #hint {

@@ -11,21 +11,31 @@
   </script>
 </head>
 <body>
-  <div id="cesiumContainer"></div>
+  <aside id="sidebar">
+    <h1 id="brand">DasVisable</h1>
 
-  <div id="toolbar">
-    <h1>DasVisable</h1>
-    <div class="model-group" id="modelGroup" role="group" aria-label="模型选择"></div>
-    <div class="detection-group" id="detectionGroup" role="group" aria-label="检测框">
-      <label class="detection-toggle detection-master">
-        <input type="checkbox" id="detectionToggleAll" checked />
-        <span>检测框</span>
-      </label>
-    </div>
+    <section class="panel">
+      <h2 class="panel-title">模型选择</h2>
+      <div class="model-group" id="modelGroup" role="group" aria-label="模型选择"></div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">检测框选择</h2>
+      <div class="detection-group" id="detectionGroup" role="group" aria-label="检测框选择">
+        <label class="detection-toggle detection-master">
+          <input type="checkbox" id="detectionToggleAll" checked />
+          <span>全部显示</span>
+        </label>
+      </div>
+    </section>
+
     <div id="status">正在初始化 Cesium...</div>
-  </div>
+  </aside>
 
-  <div id="hint">鼠标左键旋转 · 滚轮缩放 · 右键平移</div>
+  <main id="viewer-panel">
+    <div id="cesiumContainer"></div>
+    <div id="hint">鼠标左键旋转 · 滚轮缩放 · 右键平移</div>
+  </main>
 
   <script src="vendor/cesium/Cesium.js"></script>
   <script type="module" src="js/app.js"></script>
