@@ -96,6 +96,78 @@ body {
   background: rgba(47, 128, 237, 0.1);
 }
 
+.point-cloud-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.point-cloud-control {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  color: #cdd7e8;
+  font-size: 13px;
+}
+
+.point-cloud-control-title {
+  min-width: 48px;
+  color: #aab7cf;
+  white-space: nowrap;
+}
+
+.point-cloud-range {
+  width: 100%;
+  min-width: 0;
+  accent-color: #2f80ed;
+  cursor: pointer;
+}
+
+.point-cloud-value {
+  min-width: 32px;
+  text-align: right;
+  color: #f3f6fb;
+  font-variant-numeric: tabular-nums;
+}
+
+.point-cloud-select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: #131a29;
+  color: #dce5f3;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.point-cloud-select:focus {
+  border-color: rgba(47, 128, 237, 0.7);
+}
+
+.point-cloud-control-select {
+  grid-template-columns: auto 1fr;
+}
+
+.point-cloud-control-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.point-cloud-control-checkbox input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #2f80ed;
+  cursor: pointer;
+}
+
 .detection-select {
   box-sizing: border-box;
   width: 100%;

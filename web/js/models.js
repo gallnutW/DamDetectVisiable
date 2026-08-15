@@ -74,5 +74,9 @@ export function createModelManager(viewer, definitions, setStatus) {
     return results;
   }
 
-  return { loadAll, setVisible, refreshView };
+  function getTileset(key) {
+    return tilesets.get(key);
+  }
+
+  return { loadAll, setVisible, refreshView, getTileset };
 }

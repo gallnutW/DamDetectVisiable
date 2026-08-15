@@ -5,8 +5,24 @@ export const CESIUM_BASE_URL = "vendor/cesium/";
 export const models = [
   { key: "DHF", label: "DHF", url: "data/DHF/tileset.json", defaultVisible: true },
   { key: "thermal", label: "Thermal", url: "data/thermal/tileset.json", defaultVisible: true },
-  { key: "LiDAR", label: "LiDAR", url: "data/LiDAR/tileset.json", defaultVisible: true },
+  {
+    key: "LiDAR",
+    label: "LiDAR",
+    url: "data/LiDAR/tileset.json",
+    defaultVisible: true,
+    type: "pointCloud",
+  },
 ];
+
+export const pointCloudDisplayDefaults = {
+  pointSize: 2,
+  pointShape: "square",
+  colorMode: "rgb",
+  brightness: 100,
+  contrast: 100,
+  saturation: 100,
+  grayscale: false,
+};
 
 export const detections = [
   { key: "dam_crest", label: "坝顶裂缝", url: "data/kml/classified/crack_dam crest.kml", defaultVisible: true },

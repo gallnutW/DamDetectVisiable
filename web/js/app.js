@@ -1,6 +1,7 @@
-import { CESIUM_BASE_URL, models, detections } from "./config.js";
+import { CESIUM_BASE_URL, models, detections, pointCloudDisplayDefaults } from "./config.js";
 import { createViewer } from "./viewer.js";
 import { createModelManager } from "./models.js";
+import { createPointCloudAppearance } from "./pointCloud.js";
 import { createDetectionManager, wgs84ToCgcs123E } from "./detections.js";
 
 let activeFeature = null;
@@ -226,6 +227,171 @@ function renderFeatureInfo(feature, coordinateSystem = "wgs84") {
   body.replaceChildren(table);
 }
 
+function buildPointCloudSlider(container, labelText, id, min, max, step, value) {
+  const wrapper = document.createElement("label");
+  wrapper.className = "point-cloud-control";
+
+  const title = document.createElement("span");
+  title.className = "point-cloud-control-title";
+  title.textContent = labelText;
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.id = id;
+  input.className = "point-cloud-range";
+  input.min = String(min);
+  input.max = String(max);
+  input.step = String(step);
+  input.value = String(value);
+
+  const output = document.createElement("span");
+  output.className = "point-cloud-value";
+  output.textContent = String(value);
+
+  wrapper.append(title, input, output);
+  container.appendChild(wrapper);
+  return { input, output };
+}
+
+function buildPointCloudSelect(container, labelText, id, options, value, hint) {
+  const wrapper = document.createElement("label");
+  wrapper.className = "point-cloud-control point-cloud-control-select";
+
+  const title = document.createElement("span");
+  title.className = "point-cloud-control-title";
+  title.textContent = labelText;
+
+  const input = document.createElement("select");
+  input.id = id;
+  input.className = "point-cloud-select";
+  options.forEach(function ([optionValue, optionLabel]) {
+    const option = document.createElement("option");
+    option.value = optionValue;
+    option.textContent = optionLabel;
+    input.appendChild(option);
+  });
+  input.value = value;
+  if (hint) {
+    input.title = hint;
+  }
+
+  wrapper.append(title, input);
+  container.appendChild(wrapper);
+  return { input };
+}
+
+function buildPointCloudCheckbox(container, labelText, id, checked) {
+  const wrapper = document.createElement("label");
+  wrapper.className = "point-cloud-control point-cloud-control-checkbox";
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.id = id;
+  input.checked = checked;
+
+  const title = document.createElement("span");
+  title.className = "point-cloud-control-title";
+  title.textContent = labelText;
+
+  wrapper.append(input, title);
+  container.appendChild(wrapper);
+  return { input };
+}
+
+function buildPointCloudControls(container, defaults) {
+  const pointSize = buildPointCloudSlider(
+    container,
+    "点大小",
+    "pointCloudPointSize",
+    1,
+    20,
+    1,
+    defaults.pointSize,
+  );
+  const pointShape = buildPointCloudSelect(
+    container,
+    "点形状",
+    "pointCloudShape",
+    [
+      ["square", "方形"],
+      ["circle", "圆形"],
+    ],
+    defaults.pointShape,
+  );
+  const colorMode = buildPointCloudSelect(
+    container,
+    "着色模式",
+    "pointCloudColorMode",
+    [
+      ["rgb", "真彩色"],
+      ["intensity", "强度"],
+    ],
+    defaults.colorMode,
+    "当前数据无 INTENSITY 属性，强度模式使用 RGB 亮度近似。",
+  );
+  const brightness = buildPointCloudSlider(
+    container,
+    "亮度",
+    "pointCloudBrightness",
+    0,
+    200,
+    1,
+    defaults.brightness,
+  );
+  const contrast = buildPointCloudSlider(
+    container,
+    "对比度",
+    "pointCloudContrast",
+    0,
+    200,
+    1,
+    defaults.contrast,
+  );
+  const saturation = buildPointCloudSlider(
+    container,
+    "饱和度",
+    "pointCloudSaturation",
+    0,
+    200,
+    1,
+    defaults.saturation,
+  );
+  const grayscale = buildPointCloudCheckbox(
+    container,
+    "灰度",
+    "pointCloudGrayscale",
+    defaults.grayscale,
+  );
+
+  return { pointSize, pointShape, colorMode, brightness, contrast, saturation, grayscale };
+}
+
+function bindPointCloudControls(appearance, controls) {
+  function bindRange(control, setter) {
+    control.input.addEventListener("input", function () {
+      control.output.textContent = this.value;
+      setter(parseFloat(this.value));
+    });
+  }
+
+  bindRange(controls.pointSize, appearance.setPointSize);
+  bindRange(controls.brightness, appearance.setBrightness);
+  bindRange(controls.contrast, appearance.setContrast);
+  bindRange(controls.saturation, appearance.setSaturation);
+
+  controls.pointShape.input.addEventListener("change", function () {
+    appearance.setShape(this.value);
+  });
+
+  controls.colorMode.input.addEventListener("change", function () {
+    appearance.setColorMode(this.value);
+  });
+
+  controls.grayscale.input.addEventListener("change", function () {
+    appearance.setGrayscale(this.checked);
+  });
+}
+
 function bindModelControls(modelManager, modelInputs) {
   modelInputs.forEach(function (input) {
     input.addEventListener("change", function () {
@@ -318,6 +484,11 @@ function main() {
   bindModelControls(modelManager, modelInputs);
   bindDetectionControls(detectionManager, detectionMaster, detectionControls);
 
+  const pointCloudControls = buildPointCloudControls(
+    document.getElementById("pointCloudGroup"),
+    pointCloudDisplayDefaults,
+  );
+
   detectionManager.loadAll().then(function () {
     detectionControls.forEach(function (control) {
       const key = control.select.dataset.key;
@@ -343,10 +514,27 @@ function main() {
     renderFeatureInfo(activeFeature, getCoordinateSystem());
   });
 
-  modelManager.loadAll().catch(function (error) {
-    console.error(error);
-    setStatus("初始化失败：请通过本地 HTTP 服务打开页面", true);
-  });
+  modelManager.loadAll()
+    .then(function () {
+      const definition = models.find(function (item) {
+        return item.type === "pointCloud";
+      });
+      const pointCloudTileset = definition ? modelManager.getTileset(definition.key) : null;
+      if (!pointCloudTileset) {
+        return;
+      }
+
+      const appearance = createPointCloudAppearance(
+        viewer,
+        pointCloudTileset,
+        pointCloudDisplayDefaults,
+      );
+      bindPointCloudControls(appearance, pointCloudControls);
+    })
+    .catch(function (error) {
+      console.error(error);
+      setStatus("初始化失败：请通过本地 HTTP 服务打开页面", true);
+    });
 }
 
 main();
