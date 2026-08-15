@@ -331,6 +331,31 @@ export function createDetectionManager(viewer, definitions, setStatus) {
     entity.polygon.outlineWidth = 4;
   }
 
+  function flyToFeature(feature) {
+    const maxSpan = Math.max(feature.lengthMeters, feature.widthMeters);
+    const cameraHeight = Math.max(28, maxSpan * 3);
+    const destination = Cesium.Cartesian3.fromDegrees(
+      feature.center.longitude,
+      feature.center.latitude,
+      feature.center.altitude + cameraHeight,
+    );
+    const flight = viewer.camera.flyTo({
+      destination,
+      orientation: {
+        heading: 0,
+        pitch: Cesium.Math.toRadians(-90),
+        roll: 0,
+      },
+      duration: 0.8,
+    });
+
+    if (flight && typeof flight.catch === "function") {
+      flight.catch(function (error) {
+        console.warn("定位检测框视角失败", error);
+      });
+    }
+  }
+
   function clearSelection() {
     if (!selection) {
       return;
@@ -419,6 +444,7 @@ export function createDetectionManager(viewer, definitions, setStatus) {
     const style = captureEntityStyle(entity);
     applySelectedStyle(entity);
     selection = { key, featureId, entity, style };
+    flyToFeature(feature);
     viewer.scene.requestRender();
     return feature;
   }
