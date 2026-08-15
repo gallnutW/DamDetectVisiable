@@ -4,6 +4,7 @@ import { createModelManager } from "./models.js";
 import { createDetectionManager, wgs84ToCgcs123E } from "./detections.js";
 
 let activeFeature = null;
+const featureCache = new Map();
 
 function getCoordinateSystem() {
   const select = document.getElementById("coordinateSystem");
@@ -53,16 +54,55 @@ function buildDetectionItem(container, item) {
   select.appendChild(placeholder);
 
   wrapper.appendChild(select);
+
+  const filter = document.createElement("div");
+  filter.className = "detection-filter";
+
+  const filterLabel = document.createElement("span");
+  filterLabel.className = "detection-filter-label";
+  filterLabel.textContent = "筛选条件";
+
+  const metricSelect = document.createElement("select");
+  metricSelect.className = "detection-filter-metric";
+  metricSelect.dataset.key = item.key;
+  metricSelect.setAttribute("aria-label", `${item.label} 筛选指标`);
+
+  [
+    ["areaSquareMeters", "面积"],
+    ["lengthMeters", "长度"],
+    ["widthMeters", "宽度"],
+  ].forEach(function ([value, label]) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    metricSelect.appendChild(option);
+  });
+
+  const operator = document.createElement("span");
+  operator.className = "detection-filter-operator";
+  operator.textContent = ">";
+
+  const thresholdInput = document.createElement("input");
+  thresholdInput.className = "detection-filter-threshold";
+  thresholdInput.type = "number";
+  thresholdInput.min = "0";
+  thresholdInput.step = "0.01";
+  thresholdInput.placeholder = "阈值";
+  thresholdInput.dataset.key = item.key;
+  thresholdInput.setAttribute("aria-label", `${item.label} 筛选阈值`);
+
+  filter.append(filterLabel, metricSelect, operator, thresholdInput);
+  wrapper.appendChild(filter);
   container.appendChild(wrapper);
-  return { input, select };
+  return { input, select, metricSelect, thresholdInput };
 }
 
-function populateFeatureSelect(select, features) {
+function populateFeatureSelect(select, features, hasFilter = false) {
   select.replaceChildren();
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = "请选择检测框";
+  placeholder.textContent = hasFilter ? "无符合条件的检测框" : "请选择检测框";
   select.appendChild(placeholder);
 
   features.forEach(function (feature) {
@@ -75,6 +115,44 @@ function populateFeatureSelect(select, features) {
   });
 
   select.disabled = features.length === 0;
+}
+
+function applyDetectionFilter(control, detectionManager) {
+  const key = control.select.dataset.key;
+  const allFeatures = featureCache.get(key) || [];
+  const metric = control.metricSelect.value;
+  const threshold = parseFloat(control.thresholdInput.value);
+  const hasFilter = Number.isFinite(threshold);
+  const previousValue = control.select.value;
+  const filtered = hasFilter
+    ? allFeatures.filter(function (feature) {
+        return (feature[metric] || 0) > threshold;
+      })
+    : allFeatures;
+
+  populateFeatureSelect(control.select, filtered, hasFilter);
+
+  if (
+    previousValue &&
+    filtered.some(function (feature) {
+      return feature.id === previousValue;
+    })
+  ) {
+    control.select.value = previousValue;
+  }
+
+  if (
+    activeFeature &&
+    activeFeature.key === key &&
+    !filtered.some(function (feature) {
+      return feature.id === activeFeature.id;
+    })
+  ) {
+    activeFeature = null;
+    detectionManager.clearSelection();
+    control.select.value = "";
+    renderFeatureInfo(null);
+  }
 }
 
 function addFeatureInfoRow(table, label, value) {
@@ -187,6 +265,18 @@ function bindDetectionControls(detectionManager, master, detectionControls) {
       activeFeature = selectedFeature;
       renderFeatureInfo(activeFeature, getCoordinateSystem());
     });
+
+    control.metricSelect.addEventListener("change", function () {
+      applyDetectionFilter(control, detectionManager);
+    });
+
+    control.thresholdInput.addEventListener("input", function () {
+      applyDetectionFilter(control, detectionManager);
+    });
+
+    control.thresholdInput.addEventListener("change", function () {
+      applyDetectionFilter(control, detectionManager);
+    });
   });
 
   master.addEventListener("change", function () {
@@ -230,10 +320,9 @@ function main() {
 
   detectionManager.loadAll().then(function () {
     detectionControls.forEach(function (control) {
-      populateFeatureSelect(
-        control.select,
-        detectionManager.getFeatures(control.select.dataset.key),
-      );
+      const key = control.select.dataset.key;
+      featureCache.set(key, detectionManager.getFeatures(key));
+      applyDetectionFilter(control, detectionManager);
     });
   }).catch(function (error) {
     console.error("检测框 KML 加载失败：", error);

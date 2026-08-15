@@ -119,6 +119,51 @@ body {
   cursor: wait;
 }
 
+.detection-filter {
+  display: grid;
+  grid-template-columns: auto minmax(58px, 1fr) auto minmax(64px, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.detection-filter-label {
+  color: #8fa0bb;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.detection-filter-operator {
+  color: #8fa0bb;
+  font-size: 13px;
+}
+
+.detection-filter-metric,
+.detection-filter-threshold {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: #131a29;
+  color: #dce5f3;
+  font-size: 12px;
+  outline: none;
+}
+
+.detection-filter-metric {
+  cursor: pointer;
+}
+
+.detection-filter-threshold::placeholder {
+  color: #6f7d97;
+}
+
+.detection-filter-metric:focus,
+.detection-filter-threshold:focus {
+  border-color: rgba(47, 128, 237, 0.7);
+}
+
 #status {
   margin-top: auto;
   padding-top: 12px;
