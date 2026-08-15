@@ -35,6 +35,18 @@
   <main id="viewer-panel">
     <div id="cesiumContainer"></div>
     <div id="hint">鼠标左键旋转 · 滚轮缩放 · 右键平移</div>
+    <aside id="featureInfo" class="feature-info" hidden aria-live="polite">
+      <button id="featureInfoClose" class="feature-info-close" type="button" aria-label="关闭检测框信息">×</button>
+      <h2 id="featureInfoTitle">检测框信息</h2>
+      <div class="feature-info-toolbar">
+        <label for="coordinateSystem">坐标显示</label>
+        <select id="coordinateSystem" class="coordinate-system-select">
+          <option value="wgs84">WGS84</option>
+          <option value="cgcs123e">CGCS 123E</option>
+        </select>
+      </div>
+      <div id="featureInfoBody"></div>
+    </aside>
   </main>
 
   <script src="vendor/cesium/Cesium.js"></script>
