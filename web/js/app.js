@@ -15,9 +15,54 @@ function getCoordinateSystem() {
 
 function setStatusFactory(statusEl) {
   return function setStatus(message, isError = false) {
-    statusEl.textContent = message;
+    const textEl = statusEl.querySelector(".status-text") || statusEl;
+    textEl.textContent = message;
     statusEl.classList.toggle("error", isError);
+    statusEl.classList.toggle(
+      "loading",
+      !isError && /正在|加载|初始化/.test(message),
+    );
   };
+}
+
+function initSidebarAccordion() {
+  const panels = Array.from(document.querySelectorAll(".accordion"));
+
+  function setPanelOpen(panel, isOpen) {
+    const toggle = panel.querySelector(".accordion-toggle");
+    const body = panel.querySelector(".panel-body");
+    if (!toggle || !body) {
+      return;
+    }
+
+    panel.classList.toggle("open", isOpen);
+    toggle.setAttribute("aria-expanded", String(isOpen));
+    body.setAttribute("aria-hidden", String(!isOpen));
+  }
+
+  panels.forEach(function (panel) {
+    const toggle = panel.querySelector(".accordion-toggle");
+    const body = panel.querySelector(".panel-body");
+
+    if (!toggle || !body) {
+      return;
+    }
+
+    toggle.addEventListener("click", function () {
+      const willOpen = !panel.classList.contains("open");
+
+      panels.forEach(function (otherPanel) {
+        setPanelOpen(otherPanel, false);
+      });
+      if (willOpen) {
+        setPanelOpen(panel, true);
+      }
+    });
+  });
+
+  panels.forEach(function (panel) {
+    setPanelOpen(panel, false);
+  });
 }
 
 function buildToggle(container, item, inputClass) {
@@ -33,7 +78,30 @@ function buildToggle(container, item, inputClass) {
   const span = document.createElement("span");
   span.textContent = item.label;
 
+  const switchEl = document.createElement("span");
+  switchEl.className = "toggle-switch";
+  switchEl.setAttribute("aria-hidden", "true");
+
+  label.append(input, span, switchEl);
+  container.appendChild(label);
+  return input;
+}
+
+function buildModelToggle(container, item) {
+  const label = document.createElement("label");
+  label.className = "model-toggle";
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.className = "model-item";
+  input.dataset.key = item.key;
+  input.checked = item.defaultVisible;
+
+  const span = document.createElement("span");
+  span.textContent = item.label;
+
   label.append(input, span);
+  label.classList.toggle("checked", input.checked);
   container.appendChild(label);
   return input;
 }
@@ -189,6 +257,9 @@ function addFeatureInfoRow(table, label, value) {
   const cell = document.createElement("td");
   header.textContent = label;
   cell.textContent = value;
+  if (label.includes("坐标") || label.includes("角点")) {
+    cell.classList.add("feature-coordinate");
+  }
   row.append(header, cell);
   table.appendChild(row);
 }
@@ -261,6 +332,15 @@ function renderFeatureInfo(feature, coordinateSystem = "wgs84") {
   body.replaceChildren(table);
 }
 
+function updateRangeProgress(input) {
+  const min = parseFloat(input.min);
+  const max = parseFloat(input.max);
+  const value = parseFloat(input.value);
+  const progress =
+    max === min ? 0 : ((value - min) / (max - min)) * 100;
+  input.style.setProperty("--range-progress", `${progress}%`);
+}
+
 function buildPointCloudSlider(container, labelText, id, min, max, step, value) {
   const wrapper = document.createElement("label");
   wrapper.className = "point-cloud-control";
@@ -277,6 +357,7 @@ function buildPointCloudSlider(container, labelText, id, min, max, step, value) 
   input.max = String(max);
   input.step = String(step);
   input.value = String(value);
+  updateRangeProgress(input);
 
   const output = document.createElement("span");
   output.className = "point-cloud-value";
@@ -404,6 +485,7 @@ function bindPointCloudControls(appearance, controls) {
   function bindRange(control, setter) {
     control.input.addEventListener("input", function () {
       control.output.textContent = this.value;
+      updateRangeProgress(this);
       setter(parseFloat(this.value));
     });
   }
@@ -429,6 +511,10 @@ function bindPointCloudControls(appearance, controls) {
 function bindModelControls(modelManager, modelInputs) {
   modelInputs.forEach(function (input) {
     input.addEventListener("change", function () {
+      const label = input.closest(".model-toggle");
+      if (label) {
+        label.classList.toggle("checked", input.checked);
+      }
       modelManager.setVisible(input.dataset.key, input.checked);
     });
   });
@@ -506,7 +592,7 @@ function main() {
   createPlaneMeasureTool(viewer);
 
   const modelInputs = models.map(function (item) {
-    return buildToggle(document.getElementById("modelGroup"), item, "model-item");
+    return buildModelToggle(document.getElementById("modelGroup"), item);
   });
 
   const detectionControls = detections.map(function (item) {
@@ -575,4 +661,5 @@ function main() {
     });
 }
 
+initSidebarAccordion();
 main();
