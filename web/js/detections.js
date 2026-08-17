@@ -1,4 +1,7 @@
 const KML_NAMESPACE = "http://www.opengis.net/kml/2.2";
+const QUANTIFICATION_URL = "data/defect_quantification.json";
+const DEFAULT_DETECTION_OUTLINE_WIDTH = 24;
+const SELECTED_DETECTION_OUTLINE_WIDTH = 36;
 
 const DEGREES_TO_RADIANS = Math.PI / 180;
 const CGCS2000_SEMI_MAJOR_AXIS = 6378137.0;
@@ -222,7 +225,7 @@ function averagePoint(points) {
   };
 }
 
-function extractFeatures(xmlDoc, definition) {
+function extractFeatures(xmlDoc, definition, quantificationMap) {
   const features = [];
   const placemarks = xmlDoc.getElementsByTagName("Placemark");
 
@@ -241,10 +244,14 @@ function extractFeatures(xmlDoc, definition) {
       continue;
     }
 
-    const localPoints = toLocalPoints(points);
-    const box = orientedBoundingBox(localPoints);
     const center = averagePoint(points);
     const id = name || `${definition.key}_${i + 1}`;
+    const quantification = (quantificationMap && quantificationMap[name]) || {};
+
+    function numericQuantification(field) {
+      const value = quantification[field];
+      return typeof value === "number" && Number.isFinite(value) ? value : null;
+    }
 
     features.push({
       id,
@@ -254,9 +261,9 @@ function extractFeatures(xmlDoc, definition) {
       sequenceNumber: sequenceNumber(name),
       points,
       center,
-      lengthMeters: box.lengthMeters,
-      widthMeters: box.widthMeters,
-      areaSquareMeters: polygonArea(localPoints),
+      areaSquareMeters: numericQuantification("areaSquareMeters"),
+      lengthMeters: numericQuantification("lengthMeters"),
+      widthMeters: numericQuantification("widthMeters"),
     });
   }
 
@@ -276,6 +283,7 @@ export function createDetectionManager(viewer, definitions, setStatus) {
   const dataSources = new Map();
   const visibility = new Map();
   const featuresByKey = new Map();
+  let quantificationMapPromise = null;
   let selection = null;
 
   definitions.forEach(function (definition) {
@@ -296,6 +304,18 @@ export function createDetectionManager(viewer, definitions, setStatus) {
       altitudeMode.textContent = "absolute";
       polygon.insertBefore(altitudeMode, polygon.firstChild);
     }
+  }
+
+  function getQuantificationMap() {
+    if (!quantificationMapPromise) {
+      quantificationMapPromise = fetch(QUANTIFICATION_URL).then(function (response) {
+        if (!response.ok) {
+          throw new Error(`量化信息加载失败：HTTP ${response.status}`);
+        }
+        return response.json();
+      });
+    }
+    return quantificationMapPromise;
   }
 
   function captureEntityStyle(entity) {
@@ -328,11 +348,21 @@ export function createDetectionManager(viewer, definitions, setStatus) {
     entity.polygon.material = Cesium.Color.YELLOW.withAlpha(0.5);
     entity.polygon.outline = true;
     entity.polygon.outlineColor = Cesium.Color.YELLOW;
-    entity.polygon.outlineWidth = 4;
+    entity.polygon.outlineWidth = SELECTED_DETECTION_OUTLINE_WIDTH;
+  }
+
+  function applyDefaultDetectionOutline(dataSource) {
+    dataSource.entities.values.forEach(function (entity) {
+      if (!entity.polygon) {
+        return;
+      }
+      entity.polygon.outline = true;
+      entity.polygon.outlineWidth = DEFAULT_DETECTION_OUTLINE_WIDTH;
+    });
   }
 
   function flyToFeature(feature) {
-    const maxSpan = Math.max(feature.lengthMeters, feature.widthMeters);
+    const maxSpan = Math.max(feature.lengthMeters || 0, feature.widthMeters || 0);
     const cameraHeight = Math.max(28, maxSpan * 3);
     const destination = Cesium.Cartesian3.fromDegrees(
       feature.center.longitude,
@@ -378,7 +408,8 @@ export function createDetectionManager(viewer, definitions, setStatus) {
       throw new Error(`${definition.label} KML 解析失败`);
     }
 
-    const features = extractFeatures(xmlDoc, definition);
+    const quantificationMap = await getQuantificationMap();
+    const features = extractFeatures(xmlDoc, definition, quantificationMap);
     featuresByKey.set(definition.key, features);
     addAbsoluteAltitudeMode(xmlDoc);
 
@@ -389,6 +420,7 @@ export function createDetectionManager(viewer, definitions, setStatus) {
     });
 
     dataSource.show = visibility.get(definition.key);
+    applyDefaultDetectionOutline(dataSource);
     viewer.dataSources.add(dataSource);
     dataSources.set(definition.key, dataSource);
     return dataSource;

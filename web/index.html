@@ -34,6 +34,16 @@
       </div>
     </section>
 
+    <section class="panel">
+      <h2 class="panel-title">平面选择</h2>
+      <div class="plane-tools" role="group" aria-label="平面选择工具">
+        <button id="planeMeasureToggle" class="plane-action" type="button">开始选择平面</button>
+        <button id="planeMeasureClear" class="plane-action plane-action-secondary" type="button" disabled>清除</button>
+      </div>
+      <p id="planeMeasureHint" class="plane-hint">依次点击四个点，围成一个闭合四边形。</p>
+      <div id="planeMeasureResult" class="plane-result" hidden></div>
+    </section>
+
     <div id="status">正在初始化 Cesium...</div>
   </aside>
 

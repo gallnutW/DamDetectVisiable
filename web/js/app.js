@@ -3,6 +3,7 @@ import { createViewer } from "./viewer.js";
 import { createModelManager } from "./models.js";
 import { createPointCloudAppearance } from "./pointCloud.js";
 import { createDetectionManager, wgs84ToCgcs123E } from "./detections.js";
+import { createPlaneMeasureTool } from "./planeMeasure.js";
 
 let activeFeature = null;
 const featureCache = new Map();
@@ -118,6 +119,31 @@ function populateFeatureSelect(select, features, hasFilter = false) {
   select.disabled = features.length === 0;
 }
 
+function updateFilterMetricOptions(control, features) {
+  const availability = {
+    areaSquareMeters: features.some(function (feature) {
+      return feature.areaSquareMeters !== null;
+    }),
+    lengthMeters: features.some(function (feature) {
+      return feature.lengthMeters !== null;
+    }),
+    widthMeters: features.some(function (feature) {
+      return feature.widthMeters !== null;
+    }),
+  };
+
+  Array.from(control.metricSelect.options).forEach(function (option) {
+    option.disabled = !availability[option.value];
+  });
+
+  if (!availability[control.metricSelect.value]) {
+    const firstAvailable = Array.from(control.metricSelect.options).find(function (option) {
+      return availability[option.value];
+    });
+    control.metricSelect.value = firstAvailable ? firstAvailable.value : "areaSquareMeters";
+  }
+}
+
 function applyDetectionFilter(control, detectionManager) {
   const key = control.select.dataset.key;
   const allFeatures = featureCache.get(key) || [];
@@ -127,7 +153,8 @@ function applyDetectionFilter(control, detectionManager) {
   const previousValue = control.select.value;
   const filtered = hasFilter
     ? allFeatures.filter(function (feature) {
-        return (feature[metric] || 0) > threshold;
+        const value = feature[metric];
+        return typeof value === "number" && Number.isFinite(value) && value > threshold;
       })
     : allFeatures;
 
@@ -164,6 +191,13 @@ function addFeatureInfoRow(table, label, value) {
   cell.textContent = value;
   row.append(header, cell);
   table.appendChild(row);
+}
+
+function addOptionalFeatureMetric(table, label, value, unit) {
+  if (value === null || value === undefined) {
+    return;
+  }
+  addFeatureInfoRow(table, label, `${value.toFixed(2)} ${unit}`);
 }
 
 function formatCoordinatePoint(point, coordinateSystem) {
@@ -207,9 +241,9 @@ function renderFeatureInfo(feature, coordinateSystem = "wgs84") {
     "编号",
     feature.sequenceNumber === null ? "—" : String(feature.sequenceNumber),
   );
-  addFeatureInfoRow(table, "长度", `${feature.lengthMeters.toFixed(2)} m`);
-  addFeatureInfoRow(table, "宽度", `${feature.widthMeters.toFixed(2)} m`);
-  addFeatureInfoRow(table, "面积", `${feature.areaSquareMeters.toFixed(2)} m²`);
+  addOptionalFeatureMetric(table, "缺陷面积", feature.areaSquareMeters, "m²");
+  addOptionalFeatureMetric(table, "缺陷长度", feature.lengthMeters, "m");
+  addOptionalFeatureMetric(table, "缺陷平均宽度", feature.widthMeters, "m");
   addFeatureInfoRow(
     table,
     `中心坐标（${coordinateLabel}）`,
@@ -469,6 +503,8 @@ function main() {
     return;
   }
 
+  createPlaneMeasureTool(viewer);
+
   const modelInputs = models.map(function (item) {
     return buildToggle(document.getElementById("modelGroup"), item, "model-item");
   });
@@ -492,7 +528,9 @@ function main() {
   detectionManager.loadAll().then(function () {
     detectionControls.forEach(function (control) {
       const key = control.select.dataset.key;
-      featureCache.set(key, detectionManager.getFeatures(key));
+      const features = detectionManager.getFeatures(key);
+      featureCache.set(key, features);
+      updateFilterMetricOptions(control, features);
       applyDetectionFilter(control, detectionManager);
     });
   }).catch(function (error) {

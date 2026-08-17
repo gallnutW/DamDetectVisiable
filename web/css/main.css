@@ -236,6 +236,99 @@ body {
   border-color: rgba(47, 128, 237, 0.7);
 }
 
+.plane-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.plane-action {
+  flex: 1;
+  padding: 9px 11px;
+  border: 1px solid rgba(47, 128, 237, 0.65);
+  border-radius: 8px;
+  background: rgba(47, 128, 237, 0.16);
+  color: #dce9ff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.plane-action:hover {
+  border-color: rgba(47, 128, 237, 0.95);
+  background: rgba(47, 128, 237, 0.28);
+}
+
+.plane-action.active {
+  border-color: #ffb84d;
+  background: rgba(255, 184, 77, 0.18);
+  color: #ffe1ad;
+}
+
+.plane-action-secondary {
+  flex: 0 0 auto;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cdd7e8;
+}
+
+.plane-action-secondary:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.plane-action:disabled {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #68748a;
+  cursor: not-allowed;
+}
+
+.plane-hint {
+  margin: 0 0 10px;
+  color: #8fa0bb;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.plane-result {
+  padding: 10px 11px;
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.08);
+  font-size: 13px;
+  line-height: 1.55;
+  color: #d7f5e7;
+}
+
+.plane-result[hidden] {
+  display: none;
+}
+
+.plane-result-title {
+  margin: 0 0 6px;
+  color: #5eead4;
+  font-weight: 600;
+}
+
+.plane-result-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plane-result-list li {
+  padding: 2px 0;
+  color: #dce5f3;
+}
+
+.plane-result-area {
+  margin: 6px 0 0;
+  color: #5eead4;
+  font-weight: 600;
+}
+
 #status {
   margin-top: auto;
   padding-top: 12px;
