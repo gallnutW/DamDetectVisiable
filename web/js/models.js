@@ -22,8 +22,10 @@ export function createModelManager(viewer, definitions, setStatus) {
       .filter(Boolean);
   }
 
-  function refreshView() {
-    zoomToTilesets(viewer, visibleTilesets());
+  function refreshView(shouldZoom = false) {
+    if (shouldZoom) {
+      zoomToTilesets(viewer, visibleTilesets());
+    }
     const labels = visibleDefinitions().map(function (definition) {
       return definition.label;
     });
@@ -55,7 +57,7 @@ export function createModelManager(viewer, definitions, setStatus) {
     if (tileset) {
       tileset.show = visible;
     }
-    refreshView();
+    refreshView(false);
   }
 
   async function loadAll() {
@@ -66,7 +68,7 @@ export function createModelManager(viewer, definitions, setStatus) {
     );
 
     if (results.some(Boolean)) {
-      refreshView();
+      refreshView(true);
     } else {
       setStatus("部分模型加载失败，请检查控制台日志", true);
     }
