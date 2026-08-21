@@ -501,22 +501,6 @@ body {
   grid-template-columns: auto 1fr;
 }
 
-.point-cloud-control-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.point-cloud-control-checkbox input {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  accent-color: #2f80ed;
-  cursor: pointer;
-}
-
 .detection-select {
   box-sizing: border-box;
   width: 100%;

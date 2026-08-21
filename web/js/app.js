@@ -395,24 +395,6 @@ function buildPointCloudSelect(container, labelText, id, options, value, hint) {
   return { input };
 }
 
-function buildPointCloudCheckbox(container, labelText, id, checked) {
-  const wrapper = document.createElement("label");
-  wrapper.className = "point-cloud-control point-cloud-control-checkbox";
-
-  const input = document.createElement("input");
-  input.type = "checkbox";
-  input.id = id;
-  input.checked = checked;
-
-  const title = document.createElement("span");
-  title.className = "point-cloud-control-title";
-  title.textContent = labelText;
-
-  wrapper.append(input, title);
-  container.appendChild(wrapper);
-  return { input };
-}
-
 function buildPointCloudControls(container, defaults) {
   const pointSize = buildPointCloudSlider(
     container,
@@ -471,10 +453,13 @@ function buildPointCloudControls(container, defaults) {
     1,
     defaults.saturation,
   );
-  const grayscale = buildPointCloudCheckbox(
+  const grayscale = buildPointCloudSlider(
     container,
     "灰度",
     "pointCloudGrayscale",
+    0,
+    100,
+    1,
     defaults.grayscale,
   );
 
@@ -494,6 +479,7 @@ function bindPointCloudControls(appearance, controls) {
   bindRange(controls.brightness, appearance.setBrightness);
   bindRange(controls.contrast, appearance.setContrast);
   bindRange(controls.saturation, appearance.setSaturation);
+  bindRange(controls.grayscale, appearance.setGrayscale);
 
   controls.pointShape.input.addEventListener("change", function () {
     appearance.setShape(this.value);
@@ -503,9 +489,6 @@ function bindPointCloudControls(appearance, controls) {
     appearance.setColorMode(this.value);
   });
 
-  controls.grayscale.input.addEventListener("change", function () {
-    appearance.setGrayscale(this.checked);
-  });
 }
 
 function bindModelControls(modelManager, modelInputs) {

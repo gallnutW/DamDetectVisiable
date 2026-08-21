@@ -42,7 +42,7 @@ export function createPointCloudAppearance(viewer, tileset, options) {
       u_brightness: { type: Cesium.UniformType.FLOAT, value: options.brightness / 100 },
       u_contrast: { type: Cesium.UniformType.FLOAT, value: options.contrast / 100 },
       u_saturation: { type: Cesium.UniformType.FLOAT, value: options.saturation / 100 },
-      u_grayscale: { type: Cesium.UniformType.FLOAT, value: options.grayscale ? 1 : 0 },
+      u_grayscale: { type: Cesium.UniformType.FLOAT, value: options.grayscale / 100 },
     },
     vertexShaderText: VERTEX_SHADER,
     fragmentShaderText: FRAGMENT_SHADER,
@@ -76,7 +76,7 @@ export function createPointCloudAppearance(viewer, tileset, options) {
       setUniform("u_saturation", value / 100);
     },
     setGrayscale: function (value) {
-      setUniform("u_grayscale", value ? 1 : 0);
+      setUniform("u_grayscale", value / 100);
     },
   };
 }

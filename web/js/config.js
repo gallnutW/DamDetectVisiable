@@ -21,7 +21,7 @@ export const pointCloudDisplayDefaults = {
   brightness: 100,
   contrast: 100,
   saturation: 100,
-  grayscale: false,
+  grayscale: 0,
 };
 
 export const detections = [
